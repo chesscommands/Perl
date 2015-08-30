@@ -20,23 +20,31 @@ use warnings;
 #																		#
 #	動作例　　　：./minecraftBackupRestore.pl 1 backup.txt				#
 #				　出力ファイル：hoge20150705.tar.gz boo20150705.tar.gz	#
+#	動作例　　　：./minecraftBackupRestore.pl 2 backup.txt				#
+#				　出力ディレクトリ：hoge20150705/ boo20150705/			#
 #																		#
 #	作成者　　　：20150711　chesscommands								#
 #	改版履歴　　：20150711　chesscommands　新規作成　R1.0				#
+#				　20150830　chesscommands　タイムスタンプ判定追加　R1.1	#
 #																		#
 #***********************************************************************#
 
 #	外部コマンドを用いて自分のファイル名を取得しているため,環境依存になっているはず.
 my $myfileName = `basename $0`;
-$myfileName =~ chomp $myfileName;
+chomp $myfileName;
 
 my $tarCommand = "/usr/bin/tar";
 my $gzipCommand = "/usr/bin/gzip";
+my $gunzipCommand = "/usr/bin/gunzip";
+my $grepCommand = "/usr/bin/grep";
+my $lsCommand = "/bin/ls";
 
 # 引数チェック
 if ( 2 != @ARGV ) {
 	print "引数を指定してください.\n";
 	print "Usage：$myfileName 1(or 2) hoge.txt\n";
+	print "\t\t1：アーカイブ処理\n";
+	print "\t\t2：展開処理\n";
 	exit -1;
 }
 
@@ -71,7 +79,7 @@ sub subStart()
 {
 	# 第2引数のファイルの存在を確認する.
 	my $argvTwo = $ARGV[1];
-	$argvTwo =~ chomp $argvTwo;
+	chomp $argvTwo;
 	my $fileName = $argvTwo;
 
 	#		完全にMacOS・LinuxOSに依存する...WindowsOSでは動かないだろう.
@@ -111,6 +119,9 @@ sub subArgvArchiveFileOpen()
 		if ( -d "$saveDir/$line" ) {
 			$outdir[$i] = "$saveDir/\t$line";
 			$i++;
+		}
+		elsif ( $line =~ /^#.*/ ) {
+			# スキップ.
 		}
 		else {
 			# セーブデータが存在しないためスキップする.
@@ -172,6 +183,33 @@ sub subMainArchive()
 		my $path = $1;
 		my $filename = $2;
 		#	アーカイブ
+		my $desktopfile = "$homeDir/Desktop/$filename.tar.gz";
+		if ( -f $desktopfile ) {
+			#	すでにファイルが作成されている.
+#			my $lsdesktopfile = system "$tarCommand", "-tvf", "$desktopfile";
+			#	私はアホなのか.			戻り値は実行結果が返却されるだけで,コマンド結果（この場合は$tarCommand）ではない.
+#			$lsdesktopfile =~ m|([d].*/$filename/$)|m;
+#				これを教訓にするため,このコマンドを残しておく20150830
+
+			my $lsdesktopfile = `$tarCommand -tvf $desktopfile | $grepCommand $filename/\$`;
+			chomp $lsdesktopfile;
+			my @ll4lsDesktopfile = split / +/,$lsdesktopfile;
+			my $desktoptimefile = $ll4lsDesktopfile[5] . $ll4lsDesktopfile[6] . $ll4lsDesktopfile[7];
+
+			my $lssavedirfile = `$lsCommand -dl '/${path}${filename}'`;
+			chomp $lssavedirfile;
+			my @ll4lsSavefile = split / +/,$lssavedirfile;
+			my $savedirtimefile = $ll4lsSavefile[5] . $ll4lsSavefile[6] . $ll4lsSavefile[7];
+
+			if ( $desktoptimefile eq $savedirtimefile ) {
+				next;
+				print "タイムスタンプ一致のためアーカイブ処理をスキップする.\n";
+			}
+			else {
+#				print "アーカイブ処理を行う.\n";
+			}
+		}
+
 		my $ret = system "$tarCommand", "-cf", "$homeDir/Desktop/$filename.tar", "-C/", "$path$filename";
 		if ( $ret != 0 ) {
 			print "tarコマンド実行時にエラーが発生しました.\n";
