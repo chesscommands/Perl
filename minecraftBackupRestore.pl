@@ -26,6 +26,7 @@ use warnings;
 #	作成者　　　：20150711　chesscommands								#
 #	改版履歴　　：20150711　chesscommands　新規作成　R1.0				#
 #				　20150830　chesscommands　タイムスタンプ判定追加　R1.1	#
+#				　20151223　chesscommands　時刻出力　R1.2				#
 #																		#
 #***********************************************************************#
 
@@ -72,6 +73,11 @@ else {
 	# その他OS
 	$saveDir = "$homeDir/Library/Application Support/minecraft/saves";
 }
+
+# 時間取得
+my @outputtime = localtime;
+my $year = $outputtime[5] + 1900;
+my $mon  = $outputtime[4] + 1;
 
 
 # サブ関数
@@ -206,8 +212,15 @@ sub subMainArchive()
 				print "タイムスタンプ一致のためアーカイブ処理をスキップする.\n";
 			}
 			else {
-#				print "アーカイブ処理を行う.\n";
+				@outputtime = localtime;
+				my $outputprintf = sprintf("%4d/%02d/%02d %02d:%02d:%02d", $year, $mon, $outputtime[3], $outputtime[2], $outputtime[1], $outputtime[0]);
+				print "$outputprintf　アーカイブ処理を行う（既存ファイル上書き：$filename）.\n";
 			}
+		}
+		else {
+			@outputtime = localtime;
+			my $outputprintf = sprintf("%4d/%02d/%02d %02d:%02d:%02d", $year, $mon, $outputtime[3], $outputtime[2], $outputtime[1], $outputtime[0]);
+			print "$outputprintf　アーカイブ処理を行う（新規作成：$filename）.\n";
 		}
 
 		my $ret = system "$tarCommand", "-cf", "$homeDir/Desktop/$filename.tar", "-C/", "$path$filename";
